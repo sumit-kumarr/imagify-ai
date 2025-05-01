@@ -1,10 +1,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-// In a real-world implementation, these environment variables would be set properly
-// For now, we're going to use placeholder values for demonstration
-const SUPABASE_URL = "https://demo.supabase.com" as string;
-const SUPABASE_ANON_KEY = "your-anon-key" as string;
+const SUPABASE_URL = "https://umbyanuxzgobvqqiaxoj.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtYnlhbnV4emdvYnZxcWlheG9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjI5NTAsImV4cCI6MjA2MTY5ODk1MH0.swvivNEs7Ck1FIfBrwR6fbj_iUE9X31LyuLHUW_b2hU";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

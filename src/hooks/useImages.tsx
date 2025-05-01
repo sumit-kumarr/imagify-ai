@@ -67,6 +67,10 @@ export const useImages = () => {
 
       if (data && data[0]) {
         setImages([data[0], ...images]);
+        toast({
+          title: "Image saved",
+          description: "Your creation has been saved to your collection",
+        });
         return data[0];
       }
       return null;
@@ -95,9 +99,10 @@ export const useImages = () => {
       setImages(images.filter((image) => image.id !== id));
       
       toast({
-        title: "Success",
-        description: "Image deleted successfully",
+        title: "Image deleted",
+        description: "Your image has been deleted successfully",
       });
+      return true;
     } catch (err: any) {
       console.error("Error deleting image:", err);
       toast({
@@ -105,6 +110,7 @@ export const useImages = () => {
         description: "Failed to delete the image",
         variant: "destructive",
       });
+      return false;
     }
   };
 
