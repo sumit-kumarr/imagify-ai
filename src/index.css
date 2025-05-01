@@ -101,4 +101,33 @@
       transform: translateY(0);
     }
   }
+
+  .bg-gradient-main {
+    @apply bg-gradient-to-r from-primary to-secondary;
+  }
+  
+  .animate-gradient-move {
+    background-size: 200% auto;
+    animation: gradientMove 3s ease infinite;
+  }
+
+  @keyframes gradientMove {
+    0% {
+      background-position: 0% center;
+    }
+    50% {
+      background-position: 100% center;
+    }
+    100% {
+      background-position: 0% center;
+    }
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+  
+  .bg-gradient-radial {
+    background: radial-gradient(circle, var(--tw-gradient-stops));
+  }
 }

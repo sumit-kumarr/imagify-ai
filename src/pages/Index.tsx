@@ -11,6 +11,8 @@ import { useUser } from "@/hooks/useAuth";
 import { useImages } from "@/hooks/useImages";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, User } from "lucide-react";
+import { useGSAPAnimations } from "@/hooks/useGSAPAnimations";
+import gsap from "gsap";
 
 const Index = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -19,7 +21,8 @@ const Index = () => {
   const { user } = useUser();
   const { images, saveImage } = useImages();
   
-  const heroRef = useRef<HTMLDivElement>(null);
+  const { heroRef, headingRef, promptInputRef, featuresRef } = useGSAPAnimations();
+  
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
@@ -83,6 +86,25 @@ const Index = () => {
       opacity: 1
     }
   };
+
+  // ScrollTrigger for features section
+  useEffect(() => {
+    const featureCards = document.querySelectorAll('.feature-card');
+    
+    gsap.fromTo(featureCards, 
+      { opacity: 0, y: 50 },
+      { 
+        opacity: 1, 
+        y: 0, 
+        stagger: 0.2,
+        scrollTrigger: {
+          trigger: featuresRef.current,
+          start: "top bottom-=100",
+          toggleActions: "play none none none"
+        }
+      }
+    );
+  }, []);
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -105,6 +127,7 @@ const Index = () => {
           animate="visible"
         >
           <motion.h1 
+            ref={headingRef}
             className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-main text-transparent bg-clip-text animate-gradient-move"
             variants={itemVariants}
           >
@@ -118,7 +141,10 @@ const Index = () => {
             Turn your imagination into visual art with our powerful AI image generator. Simply describe what you want to see, and watch the magic happen.
           </motion.p>
           
-          <motion.div variants={itemVariants}>
+          <motion.div 
+            variants={itemVariants}
+            ref={promptInputRef}
+          >
             <PromptInput 
               onGenerateStart={handleGenerateStart}
               onGenerateComplete={handleGenerateComplete}
@@ -208,13 +234,13 @@ const Index = () => {
       </div>
       
       {/* Features Section */}
-      <section className="bg-muted py-20">
+      <section className="bg-muted py-20" ref={featuresRef}>
         <div className="container max-w-7xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Features</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <motion.div 
-              className="bg-card p-6 rounded-lg shadow-md"
+              className="feature-card bg-card p-6 rounded-lg shadow-md"
               whileHover={{ y: -5 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
@@ -228,7 +254,7 @@ const Index = () => {
             </motion.div>
             
             <motion.div 
-              className="bg-card p-6 rounded-lg shadow-md"
+              className="feature-card bg-card p-6 rounded-lg shadow-md"
               whileHover={{ y: -5 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
@@ -242,7 +268,7 @@ const Index = () => {
             </motion.div>
             
             <motion.div 
-              className="bg-card p-6 rounded-lg shadow-md"
+              className="feature-card bg-card p-6 rounded-lg shadow-md"
               whileHover={{ y: -5 }}
               transition={{ type: "spring", stiffness: 300 }}
             >

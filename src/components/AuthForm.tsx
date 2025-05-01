@@ -39,6 +39,12 @@ const resetSchema = z.object({
 
 type FormType = "login" | "register" | "reset";
 
+type LoginFormValues = z.infer<typeof loginSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>;
+type ResetFormValues = z.infer<typeof resetSchema>;
+
+type FormValues = LoginFormValues | RegisterFormValues | ResetFormValues;
+
 const AuthForm = ({ type = "login" }: { type: FormType }) => {
   const [formType, setFormType] = useState<FormType>(type);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,23 +56,24 @@ const AuthForm = ({ type = "login" }: { type: FormType }) => {
     formType === "register" ? registerSchema : 
     resetSchema;
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      password: "",
+      ...(formType !== "reset" ? { password: "" } : {}),
       ...(formType === "register" ? { confirmPassword: "" } : {}),
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     
     try {
       if (formType === "login") {
+        const loginValues = values as LoginFormValues;
         const { error } = await supabase.auth.signInWithPassword({
-          email: values.email,
-          password: values.password,
+          email: loginValues.email,
+          password: loginValues.password,
         });
         
         if (error) throw error;
@@ -79,9 +86,10 @@ const AuthForm = ({ type = "login" }: { type: FormType }) => {
         // Redirect will be handled by the auth state change
       } 
       else if (formType === "register") {
+        const registerValues = values as RegisterFormValues;
         const { error } = await supabase.auth.signUp({
-          email: values.email,
-          password: values.password,
+          email: registerValues.email,
+          password: registerValues.password,
         });
         
         if (error) throw error;
@@ -92,7 +100,8 @@ const AuthForm = ({ type = "login" }: { type: FormType }) => {
         });
       } 
       else if (formType === "reset") {
-        const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        const resetValues = values as ResetFormValues;
+        const { error } = await supabase.auth.resetPasswordForEmail(resetValues.email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         
