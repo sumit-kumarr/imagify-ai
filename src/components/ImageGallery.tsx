@@ -1,74 +1,145 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import ImageCard from "./ImageCard";
+import { Button } from "@/components/ui/button";
+import { Download, RefreshCw, Share2, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-interface ImageGalleryProps {
-  images: {
-    id?: string;
-    url: string;
-    prompt: string;
-    createdAt?: string;
-  }[];
-  onRegenerate?: (prompt: string) => void;
+interface Image {
+  id?: string;
+  url: string;
+  prompt: string;
 }
 
-const ImageGallery = ({ images, onRegenerate }: ImageGalleryProps) => {
-  const [visibleImages, setVisibleImages] = useState(12);
+interface ImageGalleryProps {
+  images: Image[];
+  onRegenerate: (prompt: string) => void;
+  onDelete?: (id: string) => Promise<boolean>;
+  onDownload?: (url: string, prompt: string) => void;
+  onShare?: (url: string) => void;
+}
 
-  if (!images.length) {
+const ImageGallery = ({ 
+  images, 
+  onRegenerate, 
+  onDelete,
+  onDownload,
+  onShare
+}: ImageGalleryProps) => {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  if (!images || images.length === 0) {
     return (
-      <div className="w-full py-16 flex flex-col items-center justify-center text-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-muted-foreground max-w-md"
-        >
-          <h3 className="text-lg font-medium mb-2">No images yet</h3>
-          <p>
-            Start by entering a prompt above and generating your first AI image!
-          </p>
-        </motion.div>
+      <div className="text-center py-10">
+        <p className="text-muted-foreground">No images to display</p>
       </div>
     );
   }
 
-  const loadMore = () => {
-    setVisibleImages((prev) => prev + 12);
+  const handleDeleteClick = (id: string) => {
+    setDeletingId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingId || !onDelete) return;
+    
+    await onDelete(deletingId);
+    setDeletingId(null);
   };
 
   return (
-    <div className="space-y-8">
-      <motion.div 
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {images.slice(0, visibleImages).map((image, index) => (
-          <ImageCard
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {images.map((image, index) => (
+          <motion.div 
             key={image.id || index}
-            imageUrl={image.url}
-            prompt={image.prompt}
-            createdAt={image.createdAt}
-            onRegenerate={onRegenerate}
-            className="h-full"
-          />
-        ))}
-      </motion.div>
-
-      {visibleImages < images.length && (
-        <div className="flex justify-center">
-          <button
-            onClick={loadMore}
-            className="px-4 py-2 text-sm bg-muted hover:bg-muted/80 text-foreground rounded-md transition-colors"
+            className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
           >
-            Load More
-          </button>
-        </div>
-      )}
-    </div>
+            <div className="aspect-square overflow-hidden bg-muted">
+              <img 
+                src={image.url} 
+                alt={image.prompt}
+                className="w-full h-full object-cover transition-transform hover:scale-105"
+              />
+            </div>
+            
+            <div className="p-4">
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{image.prompt}</p>
+              
+              <div className="flex justify-between items-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => onRegenerate(image.prompt)} 
+                  className="text-xs"
+                >
+                  <RefreshCw size={14} className="mr-1" /> Regenerate
+                </Button>
+                
+                <div className="flex gap-1">
+                  {onDownload && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => onDownload(image.url, image.prompt)}
+                    >
+                      <Download size={14} />
+                    </Button>
+                  )}
+                  
+                  {onShare && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => onShare(image.url)}
+                    >
+                      <Share2 size={14} />
+                    </Button>
+                  )}
+                  
+                  {onDelete && image.id && !image.id.startsWith('demo-') && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDeleteClick(image.id!)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this image from your collection.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

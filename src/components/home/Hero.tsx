@@ -50,31 +50,31 @@ const Hero = ({ isGenerating, onGenerateStart, onGenerateComplete }: HeroProps) 
           className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-main text-transparent bg-clip-text animate-gradient-move"
           variants={itemVariants}
         >
-          Generate Stunning AI Images From Text
+          Images From Text
         </motion.h1>
         
         <motion.p 
           className="text-lg md:text-xl text-muted-foreground mb-10"
           variants={itemVariants}
         >
-          Turn your imagination into visual art with our powerful AI image generator. 
-          Simply describe what you want to see, and watch the magic happen.
+          Turn your imagination into visual art with our powerful AI image generator. Simply
+          describe what you want to see, and watch the magic happen.
         </motion.p>
         
-        <motion.div variants={itemVariants}>
-          <PromptInput 
-            onGenerateStart={onGenerateStart}
-            onGenerateComplete={onGenerateComplete}
-          />
-        </motion.div>
-        
-        {!user && (
+        {user ? (
+          <motion.div variants={itemVariants}>
+            <PromptInput 
+              onGenerateStart={onGenerateStart}
+              onGenerateComplete={onGenerateComplete}
+            />
+          </motion.div>
+        ) : (
           <motion.div 
             variants={itemVariants}
             className="mt-6 flex gap-4 justify-center"
           >
             <Link to="/login">
-              <Button variant="default" className="gap-2">
+              <Button variant="default" className="gap-2 bg-purple-600 hover:bg-purple-700">
                 <User size={16} />
                 <span>Sign In</span>
               </Button>

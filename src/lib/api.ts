@@ -1,22 +1,37 @@
 
 import { supabase } from "./supabase";
 
-// This function will call a free external API to generate images from text
-// For demonstration purposes, we're using a placeholder image API
-// In production, you'd implement the actual API call to a real image generation API
+// Deep Image API for generating images from text prompts
 export const generateImage = async (prompt: string): Promise<string> => {
-  // Simulating API call with delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Using Lorem Picsum as a placeholder for image generation
-  // In a real app, this would call a proper image generation API like DALL-E, Midjourney API, etc.
-  const randomId = Math.floor(Math.random() * 1000);
-  const imageUrl = `https://picsum.photos/seed/${prompt.replace(/\s+/g, '-').toLowerCase()}-${randomId}/800/800`;
-  
-  // Log generation event to analytics (optional)
-  console.log(`Generated image for prompt: "${prompt}"`);
-  
-  return imageUrl;
+  try {
+    const API_KEY = "2a1daf90-26b5-11f0-a376-3380a07e162f";
+    
+    const response = await fetch("https://api.deepai.org/api/text2img", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": API_KEY,
+      },
+      body: JSON.stringify({ text: prompt }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.output_url) {
+      // Log generation event to analytics (optional)
+      console.log(`Generated image for prompt: "${prompt}"`);
+      return data.output_url;
+    } else {
+      throw new Error("No image URL returned from API");
+    }
+  } catch (error) {
+    console.error("Error generating image:", error);
+    throw error;
+  }
 };
 
 // Function to get image statistics

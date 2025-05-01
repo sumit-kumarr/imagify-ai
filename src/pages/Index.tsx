@@ -15,7 +15,7 @@ const Index = () => {
   const [currentPrompt, setCurrentPrompt] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const { user } = useUser();
-  const { images, saveImage } = useImages();
+  const { images, saveImage, deleteImage } = useImages();
   
   const { heroRef } = useGSAPAnimations();
   
@@ -48,11 +48,23 @@ const Index = () => {
   // Sample gallery of demo images
   const [galleryImages, setGalleryImages] = useState(demoImages);
   
+  useEffect(() => {
+    // If user is logged in, use their images instead of demo images
+    if (user && images.length > 0) {
+      setGalleryImages(images);
+    }
+  }, [user, images]);
+  
   const handleGenerateStart = () => {
+    // Only allow generation if user is logged in
+    if (!user) return;
     setIsGenerating(true);
   };
   
   const handleGenerateComplete = async (url: string, prompt: string) => {
+    // Only proceed if user is logged in
+    if (!user) return;
+    
     setImageUrl(url);
     setCurrentPrompt(prompt);
     setIsGenerating(false);
@@ -68,13 +80,31 @@ const Index = () => {
   };
 
   const handleRegenerate = (prompt: string) => {
+    // Only allow regeneration if user is logged in
+    if (!user) return;
+    
     setCurrentPrompt(prompt);
     setIsGenerating(true);
-    // Simulate regeneration (in a real app, this would call the API again)
-    setTimeout(() => {
-      const randomSeedUrl = `https://picsum.photos/seed/${Date.now()}/800/600`;
-      handleGenerateComplete(randomSeedUrl, prompt);
-    }, 2000);
+    // This will call the actual API to generate the image
+    setTimeout(async () => {
+      try {
+        const url = await generateImage(prompt);
+        handleGenerateComplete(url, prompt);
+      } catch (error) {
+        console.error("Error regenerating image:", error);
+        setIsGenerating(false);
+      }
+    }, 100);
+  };
+
+  const handleDeleteImage = async (id: string) => {
+    if (!user || !id) return false;
+    
+    const success = await deleteImage(id);
+    if (success) {
+      setGalleryImages(galleryImages.filter(img => img.id !== id));
+    }
+    return success;
   };
   
   return (
@@ -96,6 +126,7 @@ const Index = () => {
         galleryImages={galleryImages}
         onRegenerate={handleRegenerate}
         user={user}
+        onDeleteImage={handleDeleteImage}
       />
       
       {/* Features Section */}

@@ -87,12 +87,14 @@ export const useImages = () => {
 
   // Delete an image from the database
   const deleteImage = async (id: string) => {
+    if (!user || !id) return false;
+
     try {
       const { error } = await supabase
         .from("images")
         .delete()
         .eq("id", id)
-        .eq("user_id", user?.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
