@@ -9,6 +9,7 @@ import { useGSAPAnimations } from "@/hooks/useGSAPAnimations";
 import Hero from "@/components/home/Hero";
 import ImageDisplay from "@/components/home/ImageDisplay";
 import FeaturesSection from "@/components/home/FeaturesSection";
+import { generateImage } from "@/lib/api";
 
 const Index = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
