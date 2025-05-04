@@ -45,6 +45,7 @@ const Dashboard = () => {
     setIsGenerating(true);
     // Reset the newly generated image
     setNewImageUrl(null);
+    setNewPrompt("");
   };
 
   const handleGenerateComplete = async (imageUrl: string, prompt: string) => {
@@ -61,6 +62,11 @@ const Dashboard = () => {
       });
     } catch (error) {
       console.error("Error saving image:", error);
+      toast({
+        title: "Note",
+        description: "Image was generated but couldn't be saved to your collection",
+        variant: "default",
+      });
     }
   };
 
@@ -70,7 +76,9 @@ const Dashboard = () => {
     handleGenerateStart();
     
     try {
+      console.log("Regenerating with prompt:", prompt);
       const imageUrl = await generateImage(prompt);
+      console.log("Generated image URL:", imageUrl);
       handleGenerateComplete(imageUrl, prompt);
     } catch (error) {
       console.error("Error regenerating image:", error);
@@ -110,13 +118,19 @@ const Dashboard = () => {
 
   const handleShare = async (url: string) => {
     try {
+      // Check if the Web Share API is available
       if (navigator.share) {
         await navigator.share({
           title: 'Check out this AI-generated image!',
           text: 'Generated with ArtificialCanvas',
           url: url,
         });
+        toast({
+          title: "Shared",
+          description: "Image shared successfully",
+        });
       } else {
+        // Fallback to clipboard copy
         await navigator.clipboard.writeText(url);
         toast({
           title: "Link copied",
@@ -125,11 +139,20 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error sharing image:", error);
-      toast({
-        title: "Error",
-        description: "Failed to share image",
-        variant: "destructive",
-      });
+      // Don't show error toast for user cancellations
+      if (error instanceof Error && error.name !== "AbortError") {
+        toast({
+          title: "Error",
+          description: "Failed to share image. Link copied to clipboard instead.",
+          variant: "destructive",
+        });
+        // Try to copy to clipboard as fallback
+        try {
+          await navigator.clipboard.writeText(url);
+        } catch (clipboardError) {
+          console.error("Clipboard fallback failed:", clipboardError);
+        }
+      }
     }
   };
 

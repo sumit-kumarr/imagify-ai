@@ -9,7 +9,7 @@ interface LoadingSpinnerProps {
 
 const LoadingSpinner = ({ size = 64, text = "Loading...", className = "" }: LoadingSpinnerProps) => {
   return (
-    <div className={`flex flex-col items-center justify-center p-8 ${className}`}>
+    <div className={`flex flex-col items-center justify-center p-8 ${className}`} style={{ minHeight: size * 2 }}>
       <div className="relative" style={{ width: size, height: size }}>
         {/* Background circle */}
         <div 

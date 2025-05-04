@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, User, Menu, X, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/use-toast";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
@@ -20,6 +21,8 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const { user, isLoading, signOut } = useUser();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Track scrolling for navbar styling
   useEffect(() => {
@@ -38,8 +41,18 @@ const Navbar = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
+      toast({
+        title: "Successfully logged out",
+        description: "You have been logged out of your account",
+      });
+      navigate("/");
     } catch (error) {
       console.error("Error signing out:", error);
+      toast({
+        title: "Error signing out",
+        description: "An error occurred while signing out",
+        variant: "destructive",
+      });
     }
   };
 
@@ -122,7 +135,7 @@ const Navbar = () => {
                   <Link to="/settings">Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-500 cursor-pointer">
                   <LogOut size={16} className="mr-2" />
                   <span>Log out</span>
                 </DropdownMenuItem>

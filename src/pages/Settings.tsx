@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProfileCard from "@/components/ProfileCard";
@@ -32,6 +32,7 @@ const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
   
   // If still loading authentication state, show loading
   if (authLoading) {
@@ -47,6 +48,23 @@ const Settings = () => {
     return <Navigate to="/login" replace />;
   }
   
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to log out",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const handleDeleteAccount = async () => {
     try {
       setIsDeleting(true);
@@ -58,6 +76,7 @@ const Settings = () => {
           title: "Account deleted",
           description: "Your account has been deleted successfully",
         });
+        navigate("/");
       }, 2000);
     } catch (error: any) {
       toast({
@@ -118,6 +137,11 @@ const Settings = () => {
             
             <TabsContent value="profile" className="space-y-6">
               <ProfileCard />
+              
+              <div className="flex justify-end">
+                <Button variant="outline" className="mr-2">Cancel</Button>
+                <Button>Save Changes</Button>
+              </div>
             </TabsContent>
             
             <TabsContent value="appearance" className="space-y-6">
@@ -191,6 +215,19 @@ const Settings = () => {
                       <code>sk_••••••••••••••••••••••••••••••</code>
                       <Button variant="outline" size="sm">
                         Show
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 pt-4 border-t border-border">
+                    <h4 className="font-medium mb-4">Account Actions</h4>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Button 
+                        onClick={handleSignOut}
+                        variant="outline" 
+                        className="flex-1"
+                      >
+                        Log Out
                       </Button>
                     </div>
                   </div>

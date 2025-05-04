@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client"; // Updated import
 import type { AuthSession, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 export type { User };
 
@@ -25,6 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   useEffect(() => {
     // Get initial session
@@ -43,16 +45,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
+        console.log("Auth state changed:", _event);
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
         // For login events, redirect to dashboard
         if (_event === "SIGNED_IN") {
           navigate("/dashboard");
+          toast({
+            title: "Welcome back!",
+            description: "You are now logged in",
+          });
         }
         // For logout events, redirect to home
         if (_event === "SIGNED_OUT") {
           navigate("/");
+          toast({
+            title: "Logged out",
+            description: "You have been logged out successfully",
+          });
         }
       }
     );
@@ -61,10 +72,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, toast]);
   
   const signOut = async () => {
-    await supabase.auth.signOut();
+    console.log("Signing out...");
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+    
+    // Clear local user state (in case the auth state change event doesn't trigger)
+    setUser(null);
+    setSession(null);
+    
+    return;
   };
   
   return (
