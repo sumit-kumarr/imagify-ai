@@ -1,4 +1,3 @@
-
 import { supabase } from "./supabase";
 
 // Generate image using Gemini API
@@ -7,16 +6,20 @@ export const generateImage = async (prompt: string): Promise<string> => {
     console.log("Generating image with prompt:", prompt);
     const API_KEY = "AIzaSyDC_T756pM450zJ4OaqhYimqfwlJivdtgw";
     
-    // For demonstration, we'll use a placeholder image service as Gemini doesn't actually generate images directly
-    // In a real implementation, you might use a different service that returns image data
+    // For demonstration, we're using a placeholder image service
+    // This is because Gemini doesn't directly generate images through its API
+    // In a production app, you would integrate with a proper image generation API
     
-    // Create a random seed based on the prompt to get different images
-    const seed = encodeURIComponent(prompt);
+    // Create a consistent seed based on the prompt to get more predictable images
+    const seed = encodeURIComponent(prompt.replace(/\s+/g, '-').substring(0, 30));
     const timestamp = Date.now();
     
-    // Generate a placeholder image URL until an actual image generation API is integrated
-    // Using picsum.photos for demonstration
+    // Using picsum.photos for demo images
+    // In production, replace this with actual image generation API call
     const imageUrl = `https://picsum.photos/seed/${timestamp}-${seed}/800/600`;
+    
+    // Add a small delay to simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     console.log("Generated image URL:", imageUrl);
     return imageUrl;
@@ -26,21 +29,21 @@ export const generateImage = async (prompt: string): Promise<string> => {
   }
 };
 
-// Store image in local memory as a fallback when database is not available
+// Local storage for images when database is not available
 let localImageStorage: any[] = [];
 
-// Function to save image without database dependency
+// Function to save image with database fallback
 export const saveImageWithFallback = async (url: string, prompt: string, user: any) => {
   try {
     const imageData = {
-      id: `temp-${Date.now()}`,
+      id: `local-${Date.now()}`,
       url,
       prompt,
       user_id: user?.id || 'anonymous',
       created_at: new Date().toISOString()
     };
 
-    // Try to save to Supabase first
+    // Try to save to Supabase first if user exists
     if (user) {
       try {
         // Check if the images table exists
@@ -76,7 +79,84 @@ export const saveImageWithFallback = async (url: string, prompt: string, user: a
     }
   } catch (err) {
     console.error("Error saving image:", err);
-    return null;
+    throw err;
+  }
+};
+
+// Function to get images with fallback
+export const getImagesWithFallback = async (userId: string) => {
+  try {
+    // Try with Supabase first
+    try {
+      const { data, error } = await supabase
+        .from("images")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+        
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      // Fall back to local storage
+      console.log("Error getting images from database, using local storage:", error);
+      return localImageStorage.filter(img => img.user_id === userId);
+    }
+  } catch (error) {
+    console.error("Error getting images:", error);
+    return [];
+  }
+};
+
+// Function to delete image with fallback
+export const deleteImageWithFallback = async (id: string, userId: string) => {
+  try {
+    // If id starts with local-, it's from local storage
+    if (id.startsWith('local-')) {
+      const initialLength = localImageStorage.length;
+      localImageStorage = localImageStorage.filter(img => img.id !== id);
+      return localImageStorage.length < initialLength;
+    }
+    
+    // Otherwise try with Supabase
+    try {
+      const { error } = await supabase
+        .from("images")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
+        
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      // Fall back to local storage (just in case)
+      console.log("Error deleting image from database:", error);
+      const initialLength = localImageStorage.length;
+      localImageStorage = localImageStorage.filter(img => img.id !== id || img.user_id !== userId);
+      return localImageStorage.length < initialLength;
+    }
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    throw error;
+  }
+};
+
+// Function to share image
+export const shareImage = async (url: string): Promise<boolean> => {
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: 'Check out this AI-generated image!',
+        text: 'Generated with ArtificialCanvas',
+        url: url,
+      });
+      return true;
+    } else {
+      await navigator.clipboard.writeText(url);
+      return true;
+    }
+  } catch (error) {
+    console.error("Error sharing image:", error);
+    throw error;
   }
 };
 
@@ -117,55 +197,5 @@ export const getImageStats = async (userId: string) => {
       totalImages: 0,
       mostRecentImage: null,
     };
-  }
-};
-
-// Function to get images with fallback
-export const getImagesWithFallback = async (userId: string) => {
-  try {
-    // Try with Supabase first
-    try {
-      const { data, error } = await supabase
-        .from("images")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-        
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      // Fall back to local storage
-      console.log("Error getting images from database, using local storage:", error);
-      return localImageStorage.filter(img => img.user_id === userId);
-    }
-  } catch (error) {
-    console.error("Error getting images:", error);
-    return [];
-  }
-};
-
-// Function to delete image with fallback
-export const deleteImageWithFallback = async (id: string, userId: string) => {
-  try {
-    // Try with Supabase first
-    try {
-      const { error } = await supabase
-        .from("images")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", userId);
-        
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      // Fall back to local storage
-      console.log("Error deleting image from database, using local storage:", error);
-      const initialLength = localImageStorage.length;
-      localImageStorage = localImageStorage.filter(img => img.id !== id || img.user_id !== userId);
-      return localImageStorage.length < initialLength;
-    }
-  } catch (error) {
-    console.error("Error deleting image:", error);
-    return false;
   }
 };

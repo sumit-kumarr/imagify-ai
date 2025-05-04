@@ -17,6 +17,7 @@ export const useImages = () => {
   const [images, setImages] = useState<Image[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEmpty, setIsEmpty] = useState(false);
   const { user } = useUser();
   const { toast } = useToast();
 
@@ -25,18 +26,28 @@ export const useImages = () => {
     if (!user) {
       setImages([]);
       setIsLoading(false);
+      setIsEmpty(true);
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
+      setIsEmpty(false);
 
       const fetchedImages = await getImagesWithFallback(user.id);
+      
       setImages(fetchedImages || []);
+      setIsEmpty(fetchedImages.length === 0);
+      
+      if (fetchedImages.length === 0) {
+        // No need to show an error toast for empty results
+        console.log("No images found for user");
+      }
     } catch (err: any) {
       console.error("Error fetching images:", err);
       setError(err.message || "Failed to fetch images");
+      setIsEmpty(true);
       toast({
         title: "Error",
         description: "Failed to load your images. Using local storage as fallback.",
@@ -55,7 +66,9 @@ export const useImages = () => {
       const savedImage = await saveImageWithFallback(url, prompt, user);
       
       if (savedImage) {
-        setImages([savedImage, ...images]);
+        setImages(prevImages => [savedImage, ...prevImages]);
+        setIsEmpty(false);
+        
         toast({
           title: "Image saved",
           description: "Your creation has been saved to your collection",
@@ -67,7 +80,7 @@ export const useImages = () => {
       console.error("Error saving image:", err);
       toast({
         title: "Error",
-        description: "Failed to save your image",
+        description: "Failed to save your image, but you can still view it",
         variant: "destructive",
       });
       return null;
@@ -82,11 +95,13 @@ export const useImages = () => {
       const success = await deleteImageWithFallback(id, user.id);
       
       if (success) {
-        setImages(images.filter((image) => image.id !== id));
+        const updatedImages = images.filter((image) => image.id !== id);
+        setImages(updatedImages);
+        setIsEmpty(updatedImages.length === 0);
         
         toast({
           title: "Image deleted",
-          description: "Your image has been deleted successfully",
+          description: "Your image has been removed from your collection",
         });
       }
       return success;
@@ -103,12 +118,19 @@ export const useImages = () => {
 
   // Fetch images when the user changes
   useEffect(() => {
-    fetchImages();
+    if (user) {
+      fetchImages();
+    } else {
+      setImages([]);
+      setIsLoading(false);
+      setIsEmpty(true);
+    }
   }, [user?.id]);
 
   return {
     images,
     isLoading,
+    isEmpty,
     error,
     fetchImages,
     saveImage,
