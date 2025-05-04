@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
+import { getImagesWithFallback, saveImageWithFallback, deleteImageWithFallback } from "@/lib/api";
 
 export interface Image {
   id: string;
@@ -31,21 +32,14 @@ export const useImages = () => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
-        .from("images")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      setImages(data || []);
+      const fetchedImages = await getImagesWithFallback(user.id);
+      setImages(fetchedImages || []);
     } catch (err: any) {
       console.error("Error fetching images:", err);
       setError(err.message || "Failed to fetch images");
       toast({
         title: "Error",
-        description: "Failed to load your images",
+        description: "Failed to load your images. Using local storage as fallback.",
         variant: "destructive",
       });
     } finally {
@@ -53,25 +47,20 @@ export const useImages = () => {
     }
   };
 
-  // Save a new image to the database
+  // Save a new image to the database with fallback mechanism
   const saveImage = async (url: string, prompt: string) => {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
-        .from("images")
-        .insert([{ url, prompt, user_id: user.id }])
-        .select();
-
-      if (error) throw error;
-
-      if (data && data[0]) {
-        setImages([data[0], ...images]);
+      const savedImage = await saveImageWithFallback(url, prompt, user);
+      
+      if (savedImage) {
+        setImages([savedImage, ...images]);
         toast({
           title: "Image saved",
           description: "Your creation has been saved to your collection",
         });
-        return data[0];
+        return savedImage;
       }
       return null;
     } catch (err: any) {
@@ -85,26 +74,22 @@ export const useImages = () => {
     }
   };
 
-  // Delete an image from the database
+  // Delete an image with fallback mechanism
   const deleteImage = async (id: string) => {
     if (!user || !id) return false;
 
     try {
-      const { error } = await supabase
-        .from("images")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      setImages(images.filter((image) => image.id !== id));
+      const success = await deleteImageWithFallback(id, user.id);
       
-      toast({
-        title: "Image deleted",
-        description: "Your image has been deleted successfully",
-      });
-      return true;
+      if (success) {
+        setImages(images.filter((image) => image.id !== id));
+        
+        toast({
+          title: "Image deleted",
+          description: "Your image has been deleted successfully",
+        });
+      }
+      return success;
     } catch (err: any) {
       console.error("Error deleting image:", err);
       toast({

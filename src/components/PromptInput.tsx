@@ -44,7 +44,9 @@ const PromptInput = ({ onGenerateStart, onGenerateComplete }: PromptInputProps) 
       setIsGenerating(true);
       onGenerateStart();
       
+      console.log("Sending prompt to generate image:", finalPrompt);
       const imageUrl = await generateImage(finalPrompt);
+      console.log("Received image URL:", imageUrl);
       
       onGenerateComplete(imageUrl, finalPrompt);
       toast({

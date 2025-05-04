@@ -190,7 +190,7 @@ const Dashboard = () => {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-2xl font-semibold mb-6"
             >
-              Create New Image with Gemini AI
+              Create New Image with AI
             </motion.h2>
             
             <motion.div
@@ -281,7 +281,7 @@ const Dashboard = () => {
                   <div className="py-12">
                     <LoadingSpinner text="Loading your images..." />
                   </div>
-                ) : images.length > 0 ? (
+                ) : images && images.length > 0 ? (
                   <ImageGallery 
                     images={getFilteredImages()} 
                     onRegenerate={handleRegenerate} 
@@ -330,7 +330,7 @@ const Dashboard = () => {
               </TabsContent>
             </Tabs>
             
-            {images.length > 24 && (
+            {images && images.length > 24 && (
               <div className="mt-8 flex justify-center">
                 <Button variant="outline">Load More</Button>
               </div>
