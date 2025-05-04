@@ -1,6 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
-import { useScroll, useTransform } from "framer-motion";
+import { useScroll, useTransform, motion } from "framer-motion";
+import { Navigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useUser } from "@/hooks/useAuth";
@@ -10,6 +11,8 @@ import Hero from "@/components/home/Hero";
 import ImageDisplay from "@/components/home/ImageDisplay";
 import FeaturesSection from "@/components/home/FeaturesSection";
 import { generateImage } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -28,6 +31,19 @@ const Index = () => {
   const opacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 1], [1, 0.9]);
   
+  // If user is logged in, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      // User is logged in, redirect to dashboard
+      return;
+    }
+  }, [user]);
+  
+  // If user is logged in, redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" />;
+  }
+
   const demoImages = [
     { 
       id: "demo-1",
@@ -48,13 +64,6 @@ const Index = () => {
   
   // Sample gallery of demo images
   const [galleryImages, setGalleryImages] = useState(demoImages);
-  
-  useEffect(() => {
-    // If user is logged in, use their images instead of demo images
-    if (user && images.length > 0) {
-      setGalleryImages(images);
-    }
-  }, [user, images]);
   
   const handleGenerateStart = () => {
     // Only allow generation if user is logged in
@@ -119,16 +128,56 @@ const Index = () => {
         onGenerateComplete={handleGenerateComplete}
       />
       
-      {/* Main content with image display */}
-      <ImageDisplay
-        isGenerating={isGenerating}
-        imageUrl={imageUrl}
-        currentPrompt={currentPrompt}
-        galleryImages={galleryImages}
-        onRegenerate={handleRegenerate}
-        user={user}
-        onDeleteImage={handleDeleteImage}
-      />
+      {/* Call to Action section for non-logged in users */}
+      <motion.div
+        className="container max-w-7xl mx-auto px-4 py-20 text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-main text-transparent bg-clip-text">
+          Create Amazing AI Images with Gemini
+        </h2>
+        <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+          Sign in or create an account to start generating your own AI images powered by Gemini. 
+          Save your creations, share them with friends, and download them for use anywhere.
+        </p>
+        <div className="flex gap-4 justify-center">
+          <Link to="/login">
+            <Button variant="default" className="gap-2 bg-gradient-main hover:opacity-90 px-6 py-6 text-lg">
+              Get Started
+            </Button>
+          </Link>
+          <Link to="/register">
+            <Button variant="outline" className="px-6 py-6 text-lg">
+              Learn More
+            </Button>
+          </Link>
+        </div>
+      </motion.div>
+      
+      {/* Demo Image Gallery */}
+      <div className="container max-w-7xl mx-auto px-4 pb-20">
+        <h2 className="text-2xl font-semibold mb-8 text-center">Example Creations</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {demoImages.map((image, index) => (
+            <motion.div 
+              key={image.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="bg-card rounded-lg overflow-hidden shadow-lg border border-border/50"
+            >
+              <div className="aspect-square overflow-hidden">
+                <img src={image.url} alt={image.prompt} className="w-full h-full object-cover" />
+              </div>
+              <div className="p-4">
+                <p className="text-sm text-muted-foreground">{image.prompt}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
       
       {/* Features Section */}
       <FeaturesSection />

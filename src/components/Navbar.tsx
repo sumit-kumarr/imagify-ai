@@ -2,14 +2,24 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, User, Menu, X } from "lucide-react";
+import { Moon, Sun, User, Menu, X, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
+import { useUser } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const { user, isLoading, signOut } = useUser();
   
   // Track scrolling for navbar styling
   useEffect(() => {
@@ -24,6 +34,16 @@ const Navbar = () => {
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  const userDisplayName = user?.user_metadata?.username || user?.email?.split("@")[0] || "User";
 
   return (
     <header
@@ -48,22 +68,28 @@ const Navbar = () => {
           >
             Home
           </Link>
-          <Link
-            to="/dashboard"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              location.pathname === "/dashboard" ? "text-primary" : "text-foreground/80"
-            }`}
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/settings"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              location.pathname === "/settings" ? "text-primary" : "text-foreground/80"
-            }`}
-          >
-            Settings
-          </Link>
+          
+          {user && (
+            <Link
+              to="/dashboard"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                location.pathname === "/dashboard" ? "text-primary" : "text-foreground/80"
+              }`}
+            >
+              Dashboard
+            </Link>
+          )}
+          
+          {user && (
+            <Link
+              to="/settings"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                location.pathname === "/settings" ? "text-primary" : "text-foreground/80"
+              }`}
+            >
+              Settings
+            </Link>
+          )}
           
           <Button
             variant="ghost"
@@ -74,12 +100,42 @@ const Navbar = () => {
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </Button>
           
-          <Link to="/login">
-            <Button variant="outline" size="sm" className="ml-2 gap-1">
-              <User size={16} />
-              <span>Login</span>
+          {isLoading ? (
+            <Button variant="outline" size="sm" disabled>
+              Loading...
             </Button>
-          </Link>
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="ml-2 gap-1">
+                  <User size={16} />
+                  <span>{userDisplayName}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
+                  <LogOut size={16} className="mr-2" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/login">
+              <Button variant="outline" size="sm" className="ml-2 gap-1">
+                <User size={16} />
+                <span>Login</span>
+              </Button>
+            </Link>
+          )}
         </nav>
 
         {/* Mobile menu button */}
@@ -105,22 +161,28 @@ const Navbar = () => {
             >
               Home
             </Link>
-            <Link
-              to="/dashboard"
-              className={`text-lg font-medium transition-colors ${
-                location.pathname === "/dashboard" ? "text-primary" : "text-foreground/80"
-              }`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/settings"
-              className={`text-lg font-medium transition-colors ${
-                location.pathname === "/settings" ? "text-primary" : "text-foreground/80"
-              }`}
-            >
-              Settings
-            </Link>
+            
+            {user && (
+              <Link
+                to="/dashboard"
+                className={`text-lg font-medium transition-colors ${
+                  location.pathname === "/dashboard" ? "text-primary" : "text-foreground/80"
+                }`}
+              >
+                Dashboard
+              </Link>
+            )}
+            
+            {user && (
+              <Link
+                to="/settings"
+                className={`text-lg font-medium transition-colors ${
+                  location.pathname === "/settings" ? "text-primary" : "text-foreground/80"
+                }`}
+              >
+                Settings
+              </Link>
+            )}
             
             <div className="flex items-center justify-between pt-4 border-t border-border">
               <Button
@@ -133,12 +195,24 @@ const Navbar = () => {
                 <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
               </Button>
               
-              <Link to="/login">
-                <Button variant="default" size="default" className="gap-2">
-                  <User size={16} />
-                  <span>Login</span>
+              {user ? (
+                <Button 
+                  variant="destructive" 
+                  size="default" 
+                  className="gap-2"
+                  onClick={handleSignOut}
+                >
+                  <LogOut size={16} />
+                  <span>Logout</span>
                 </Button>
-              </Link>
+              ) : (
+                <Link to="/login">
+                  <Button variant="default" size="default" className="gap-2">
+                    <User size={16} />
+                    <span>Login</span>
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
