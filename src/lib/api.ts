@@ -1,4 +1,5 @@
-import { supabase } from "./supabase";
+
+import { supabase } from "@/integrations/supabase/client";
 
 // Demo images for when no user images exist or API fails
 const DEMO_IMAGES = [
@@ -49,133 +50,101 @@ export const generateImage = async (prompt: string): Promise<string> => {
   }
 };
 
-// Local storage for images when database is not available
-let localImageStorage: any[] = [];
-
-// Function to save image with database fallback
+// Function to save image to Supabase database
 export const saveImageWithFallback = async (url: string, prompt: string, user: any) => {
   try {
-    const imageData = {
-      id: `local-${Date.now()}`,
-      url,
-      prompt,
-      user_id: user?.id || 'anonymous',
-      created_at: new Date().toISOString()
-    };
-
-    // Try to save to Supabase first if user exists
-    if (user) {
-      try {
-        // Check if the images table exists
-        const { data: tablesExist, error: checkError } = await supabase
-          .from('images')
-          .select('id')
-          .limit(1);
-        
-        if (checkError && checkError.code === '42P01') {
-          // Table doesn't exist, use local storage
-          console.log("Images table doesn't exist, using local storage instead");
-          localImageStorage.unshift(imageData);
-          return imageData;
-        }
-        
-        // If we get here, table exists
-        const { data, error } = await supabase
-          .from('images')
-          .insert([{ url, prompt, user_id: user.id }])
-          .select();
-
-        if (error) throw error;
-        return data && data[0] ? data[0] : imageData;
-      } catch (dbError) {
-        console.error("Database error, falling back to local storage:", dbError);
-        localImageStorage.unshift(imageData);
-        return imageData;
-      }
-    } else {
-      // No user, so use local storage
-      localImageStorage.unshift(imageData);
-      return imageData;
+    if (!user) {
+      console.log("No user found, cannot save image");
+      return null;
     }
+
+    console.log("Saving image to Supabase:", { url, prompt, userId: user.id });
+    
+    // Insert the image into the Supabase database
+    const { data, error } = await supabase
+      .from("images")
+      .insert([{ 
+        url, 
+        prompt, 
+        user_id: user.id 
+      }])
+      .select();
+
+    if (error) {
+      console.error("Error saving to Supabase:", error);
+      throw error;
+    }
+    
+    console.log("Image saved successfully:", data);
+    return data && data[0] ? data[0] : null;
   } catch (err) {
     console.error("Error saving image:", err);
     throw err;
   }
 };
 
-// Function to get images with fallback
+// Function to get images from Supabase
 export const getImagesWithFallback = async (userId: string) => {
   try {
-    // First try with localStorage
-    let userImages = localImageStorage.filter(img => img.user_id === userId);
-    
-    // If we already have images in localStorage, return them
-    if (userImages.length > 0) {
-      console.log("Using images from local storage:", userImages.length);
-      return userImages;
-    }
-    
-    // Try with Supabase if no local images
-    try {
-      const { data, error } = await supabase
-        .from("images")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-        
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        return data;
-      }
-      
-      // No images found in database or local storage, use demo images
-      console.log("No images found for user, using demo images");
+    if (!userId) {
+      console.log("No user ID provided, returning demo images");
       return DEMO_IMAGES;
-    } catch (error) {
-      console.error("Error getting images from database, using local storage:", error);
-      
-      // If we have local images use them, otherwise use demo images
-      return userImages.length > 0 ? userImages : DEMO_IMAGES;
     }
+    
+    console.log("Fetching images for user:", userId);
+    
+    // Fetch images from Supabase
+    const { data, error } = await supabase
+      .from("images")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+      
+    if (error) {
+      console.error("Error fetching from Supabase:", error);
+      throw error;
+    }
+    
+    if (data && data.length > 0) {
+      console.log(`Retrieved ${data.length} images from Supabase`);
+      return data;
+    }
+    
+    // No images found in database, use demo images
+    console.log("No images found for user, using demo images");
+    return DEMO_IMAGES;
   } catch (error) {
     console.error("Error getting images:", error);
     return DEMO_IMAGES;
   }
 };
 
-// Function to delete image with fallback
+// Function to delete image from Supabase
 export const deleteImageWithFallback = async (id: string, userId: string) => {
   try {
-    // If id starts with local-, it's from local storage
-    if (id.startsWith('local-')) {
-      const initialLength = localImageStorage.length;
-      localImageStorage = localImageStorage.filter(img => img.id !== id);
-      return localImageStorage.length < initialLength;
-    }
+    if (!userId || !id) return false;
     
     // If id starts with demo-, it's a demo image which we pretend to delete
     if (id.startsWith('demo-')) {
       return true;
     }
     
-    // Otherwise try with Supabase
-    try {
-      const { error } = await supabase
-        .from("images")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", userId);
-        
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      // Fall back to local storage (just in case)
-      console.log("Error deleting image from database:", error);
-      const initialLength = localImageStorage.length;
-      localImageStorage = localImageStorage.filter(img => img.id !== id || img.user_id !== userId);
-      return localImageStorage.length < initialLength;
+    console.log(`Deleting image with ID: ${id} for user: ${userId}`);
+    
+    // Delete the image from Supabase
+    const { error } = await supabase
+      .from("images")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId);
+      
+    if (error) {
+      console.error("Error deleting from Supabase:", error);
+      throw error;
     }
+    
+    console.log("Image deleted successfully");
+    return true;
   } catch (error) {
     console.error("Error deleting image:", error);
     throw error;
@@ -202,37 +171,36 @@ export const shareImage = async (url: string): Promise<boolean> => {
   }
 };
 
-// Function to get image statistics with fallback
+// Function to get image statistics
 export const getImageStats = async (userId: string) => {
   try {
-    // Try with Supabase first
-    try {
-      const { data, error } = await supabase
-        .from("images")
-        .select("*")
-        .eq("user_id", userId);
-        
-      if (error) throw error;
-      
-      // Calculate stats
-      const totalImages = data.length;
-      const mostRecentImage = data.length > 0 ? 
-        data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] : 
-        null;
-      
+    if (!userId) {
       return {
-        totalImages,
-        mostRecentImage,
-      };
-    } catch (error) {
-      // Fall back to local storage
-      console.error("Error getting image stats from database, using local storage:", error);
-      const userImages = localImageStorage.filter(img => img.user_id === userId);
-      return {
-        totalImages: userImages.length,
-        mostRecentImage: userImages.length > 0 ? userImages[0] : null
+        totalImages: 0,
+        mostRecentImage: null,
       };
     }
+    
+    // Get statistics from Supabase
+    const { data, error } = await supabase
+      .from("images")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+      
+    if (error) {
+      console.error("Error getting image stats:", error);
+      throw error;
+    }
+    
+    // Calculate stats
+    const totalImages = data ? data.length : 0;
+    const mostRecentImage = data && data.length > 0 ? data[0] : null;
+    
+    return {
+      totalImages,
+      mostRecentImage,
+    };
   } catch (error) {
     console.error("Error getting image stats:", error);
     return {

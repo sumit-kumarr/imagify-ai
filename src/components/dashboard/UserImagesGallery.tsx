@@ -103,6 +103,15 @@ const UserImagesGallery = ({
         <p className="text-muted-foreground max-w-md mx-auto mb-6">
           Start creating beautiful AI-generated images by entering a prompt above.
         </p>
+        {onRefresh && (
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            className="bg-background"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh Gallery
+          </Button>
+        )}
       </div>
     </motion.div>
   );
@@ -154,7 +163,7 @@ const UserImagesGallery = ({
         </TabsList>
         
         <div className="min-h-[400px]">
-          {(imagesLoading && !initialLoadComplete) || loadingTimeout && imagesLoading ? (
+          {(imagesLoading && !initialLoadComplete) || (loadingTimeout && imagesLoading) ? (
             <LoadingState />
           ) : (
             <TabsContent value={activeTab} className="space-y-4 mt-0">

@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 import { getImagesWithFallback, saveImageWithFallback, deleteImageWithFallback } from "@/lib/api";
@@ -35,8 +35,10 @@ export const useImages = () => {
       setError(null);
       setIsEmpty(false);
 
+      console.log("Fetching images for user:", user.id);
       const fetchedImages = await getImagesWithFallback(user.id);
       
+      console.log("Images fetched:", fetchedImages?.length || 0);
       setImages(fetchedImages || []);
       setIsEmpty(fetchedImages.length === 0);
     } catch (err: any) {
@@ -44,7 +46,7 @@ export const useImages = () => {
       setError(err.message || "Failed to fetch images");
       toast({
         title: "Error",
-        description: "Failed to load your images. Using fallback images.",
+        description: "Failed to load your images. Check your connection.",
         variant: "destructive",
       });
     } finally {
@@ -55,14 +57,17 @@ export const useImages = () => {
     }
   }, [user, toast]);
 
-  // Save a new image to the database with fallback mechanism
+  // Save a new image to the database
   const saveImage = async (url: string, prompt: string) => {
     if (!user) return null;
 
     try {
+      console.log("Attempting to save image:", { url, prompt });
       const savedImage = await saveImageWithFallback(url, prompt, user);
       
       if (savedImage) {
+        console.log("Image saved successfully:", savedImage);
+        // Update local state with the new image
         setImages(prevImages => [savedImage, ...prevImages]);
         setIsEmpty(false);
         
@@ -72,26 +77,30 @@ export const useImages = () => {
         });
         return savedImage;
       }
+      console.log("No image data returned after save attempt");
       return null;
     } catch (err: any) {
       console.error("Error saving image:", err);
       toast({
         title: "Error",
-        description: "Failed to save your image, but you can still view it",
+        description: "Failed to save your image to database",
         variant: "destructive",
       });
       return null;
     }
   };
 
-  // Delete an image with fallback mechanism
+  // Delete an image
   const deleteImage = async (id: string) => {
     if (!user || !id) return false;
 
     try {
+      console.log(`Attempting to delete image with ID: ${id}`);
       const success = await deleteImageWithFallback(id, user.id);
       
       if (success) {
+        console.log("Image deleted successfully");
+        // Update local state
         const updatedImages = images.filter((image) => image.id !== id);
         setImages(updatedImages);
         setIsEmpty(updatedImages.length === 0);
@@ -100,6 +109,8 @@ export const useImages = () => {
           title: "Image deleted",
           description: "Your image has been removed from your collection",
         });
+      } else {
+        console.log("Failed to delete image");
       }
       return success;
     } catch (err: any) {
@@ -113,11 +124,13 @@ export const useImages = () => {
     }
   };
 
-  // Fetch images when the user changes
+  // Fetch images when the user changes or component mounts
   useEffect(() => {
     if (user) {
+      console.log("User available, fetching images");
       fetchImages();
     } else {
+      console.log("No user available, clearing images");
       setImages([]);
       setIsLoading(false);
       setIsEmpty(true);
