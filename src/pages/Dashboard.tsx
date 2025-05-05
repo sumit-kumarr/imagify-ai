@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -15,13 +15,19 @@ import UserImagesGallery from "@/components/dashboard/UserImagesGallery";
 const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const { user, isLoading: authLoading } = useUser();
-  const { images, isLoading: imagesLoading, fetchImages, saveImage, deleteImage } = useImages();
+  const { 
+    images, 
+    isLoading: imagesLoading, 
+    fetchImages, 
+    saveImage, 
+    deleteImage 
+  } = useImages();
   const [newImageUrl, setNewImageUrl] = useState<string | null>(null);
   const [newPrompt, setNewPrompt] = useState<string>("");
   const { toast } = useToast();
 
-  // Fetch images when component mounts or user changes
-  useEffect(() => {
+  // Refresh images manually when needed
+  const handleRefreshImages = useCallback(() => {
     if (user) {
       fetchImages();
     }
@@ -56,10 +62,8 @@ const Dashboard = () => {
     // Save the new image to the database
     try {
       await saveImage(imageUrl, prompt);
-      toast({
-        title: "Image saved",
-        description: "Your creation has been added to your collection",
-      });
+      // Refresh images to include the newly saved one
+      handleRefreshImages();
     } catch (error) {
       console.error("Error saving image:", error);
       toast({
@@ -186,6 +190,7 @@ const Dashboard = () => {
             onDelete={deleteImage}
             onDownload={handleDownload}
             onShare={handleShare}
+            onRefresh={handleRefreshImages}
           />
         </main>
       </div>

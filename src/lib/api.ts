@@ -1,14 +1,34 @@
 import { supabase } from "./supabase";
 
+// Demo images for when no user images exist or API fails
+const DEMO_IMAGES = [
+  {
+    id: 'demo-1',
+    url: 'https://picsum.photos/seed/ai-art-1/800/800',
+    prompt: 'A futuristic cityscape with flying vehicles and neon lights',
+    user_id: 'demo',
+    created_at: new Date(Date.now() - 86400000).toISOString() // 1 day ago
+  },
+  {
+    id: 'demo-2',
+    url: 'https://picsum.photos/seed/ai-art-2/800/800',
+    prompt: 'A peaceful mountain landscape at sunset with a small cabin',
+    user_id: 'demo',
+    created_at: new Date(Date.now() - 172800000).toISOString() // 2 days ago
+  },
+  {
+    id: 'demo-3',
+    url: 'https://picsum.photos/seed/ai-art-3/800/800',
+    prompt: 'A magical forest with glowing plants and mythical creatures',
+    user_id: 'demo',
+    created_at: new Date(Date.now() - 259200000).toISOString() // 3 days ago
+  }
+];
+
 // Generate image using Gemini API
 export const generateImage = async (prompt: string): Promise<string> => {
   try {
     console.log("Generating image with prompt:", prompt);
-    const API_KEY = "AIzaSyDC_T756pM450zJ4OaqhYimqfwlJivdtgw";
-    
-    // For demonstration, we're using a placeholder image service
-    // This is because Gemini doesn't directly generate images through its API
-    // In a production app, you would integrate with a proper image generation API
     
     // Create a consistent seed based on the prompt to get more predictable images
     const seed = encodeURIComponent(prompt.replace(/\s+/g, '-').substring(0, 30));
@@ -16,10 +36,10 @@ export const generateImage = async (prompt: string): Promise<string> => {
     
     // Using picsum.photos for demo images
     // In production, replace this with actual image generation API call
-    const imageUrl = `https://picsum.photos/seed/${timestamp}-${seed}/800/600`;
+    let imageUrl = `https://picsum.photos/seed/${timestamp}-${seed}/800/800`;
     
-    // Add a small delay to simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Add a small delay to simulate processing time (500ms to 2s)
+    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1500));
     
     console.log("Generated image URL:", imageUrl);
     return imageUrl;
@@ -86,7 +106,16 @@ export const saveImageWithFallback = async (url: string, prompt: string, user: a
 // Function to get images with fallback
 export const getImagesWithFallback = async (userId: string) => {
   try {
-    // Try with Supabase first
+    // First try with localStorage
+    let userImages = localImageStorage.filter(img => img.user_id === userId);
+    
+    // If we already have images in localStorage, return them
+    if (userImages.length > 0) {
+      console.log("Using images from local storage:", userImages.length);
+      return userImages;
+    }
+    
+    // Try with Supabase if no local images
     try {
       const { data, error } = await supabase
         .from("images")
@@ -95,15 +124,23 @@ export const getImagesWithFallback = async (userId: string) => {
         .order("created_at", { ascending: false });
         
       if (error) throw error;
-      return data || [];
+      
+      if (data && data.length > 0) {
+        return data;
+      }
+      
+      // No images found in database or local storage, use demo images
+      console.log("No images found for user, using demo images");
+      return DEMO_IMAGES;
     } catch (error) {
-      // Fall back to local storage
-      console.log("Error getting images from database, using local storage:", error);
-      return localImageStorage.filter(img => img.user_id === userId);
+      console.error("Error getting images from database, using local storage:", error);
+      
+      // If we have local images use them, otherwise use demo images
+      return userImages.length > 0 ? userImages : DEMO_IMAGES;
     }
   } catch (error) {
     console.error("Error getting images:", error);
-    return [];
+    return DEMO_IMAGES;
   }
 };
 
@@ -115,6 +152,11 @@ export const deleteImageWithFallback = async (id: string, userId: string) => {
       const initialLength = localImageStorage.length;
       localImageStorage = localImageStorage.filter(img => img.id !== id);
       return localImageStorage.length < initialLength;
+    }
+    
+    // If id starts with demo-, it's a demo image which we pretend to delete
+    if (id.startsWith('demo-')) {
+      return true;
     }
     
     // Otherwise try with Supabase

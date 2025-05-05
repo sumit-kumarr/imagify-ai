@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image } from "@/hooks/useImages";
 import { useState, useEffect } from "react";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, RefreshCw } from "lucide-react";
 
 interface UserImagesGalleryProps {
   images: Image[];
@@ -15,6 +15,7 @@ interface UserImagesGalleryProps {
   onDelete: (id: string) => Promise<boolean>;
   onDownload: (url: string, prompt: string) => void;
   onShare: (url: string) => void;
+  onRefresh?: () => void;
 }
 
 const UserImagesGallery = ({
@@ -23,10 +24,13 @@ const UserImagesGallery = ({
   onRegenerate,
   onDelete,
   onDownload,
-  onShare
+  onShare,
+  onRefresh
 }: UserImagesGalleryProps) => {
   const [activeTab, setActiveTab] = useState("all");
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [visibleImages, setVisibleImages] = useState<Image[]>([]);
+  const [loadingTimeout, setLoadingTimeout] = useState<boolean>(true);
   
   // Set initial load complete after a delay to prevent flickering
   useEffect(() => {
@@ -34,10 +38,25 @@ const UserImagesGallery = ({
       const timer = setTimeout(() => {
         setInitialLoadComplete(true);
       }, 500);
-      return () => clearTimeout(timer);
+      
+      // Also set loading timeout to false after 5 seconds
+      // This prevents infinite loading states
+      const loadingTimer = setTimeout(() => {
+        setLoadingTimeout(false);
+      }, 5000);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(loadingTimer);
+      };
     }
   }, [imagesLoading]);
 
+  // Filter images when active tab changes or images update
+  useEffect(() => {
+    setVisibleImages(getFilteredImages());
+  }, [activeTab, images]);
+  
   // Get filtered images based on active tab
   const getFilteredImages = () => {
     if (!images?.length) return [];
@@ -45,14 +64,28 @@ const UserImagesGallery = ({
     switch (activeTab) {
       case "recent":
         return [...images].sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
         ).slice(0, 12);
       case "oldest":
         return [...images].sort((a, b) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
         ).slice(0, 12);
       default:
         return images.slice(0, 24);
+    }
+  };
+
+  // Handle manual refresh
+  const handleRefresh = () => {
+    if (onRefresh) {
+      setInitialLoadComplete(false);
+      setLoadingTimeout(true);
+      onRefresh();
+      
+      // Reset timeout
+      setTimeout(() => {
+        setLoadingTimeout(false);
+      }, 5000);
     }
   };
 
@@ -75,8 +108,19 @@ const UserImagesGallery = ({
   );
 
   const LoadingState = () => (
-    <div className="py-12 min-h-[400px] flex items-center justify-center">
+    <div className="py-12 min-h-[400px] flex flex-col items-center justify-center">
       <LoadingSpinner text="Loading your images..." size={80} />
+      
+      {!loadingTimeout ? (
+        <div className="mt-8 text-center">
+          <p className="text-muted-foreground mb-4">
+            Taking longer than expected? Try refreshing.
+          </p>
+          <Button variant="outline" onClick={handleRefresh} className="mx-auto">
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh Images
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 
@@ -86,9 +130,20 @@ const UserImagesGallery = ({
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="text-2xl font-semibold mb-6"
+        className="text-2xl font-semibold mb-6 flex items-center justify-between"
       >
-        Your Creations
+        <span>Your Creations</span>
+        {onRefresh && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={imagesLoading}
+            className="text-muted-foreground"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+          </Button>
+        )}
       </motion.h2>
 
       <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
@@ -99,52 +154,22 @@ const UserImagesGallery = ({
         </TabsList>
         
         <div className="min-h-[400px]">
-          {imagesLoading && !initialLoadComplete ? (
+          {(imagesLoading && !initialLoadComplete) || loadingTimeout && imagesLoading ? (
             <LoadingState />
           ) : (
-            <>
-              <TabsContent value="all" className="space-y-4">
-                {images && images.length > 0 ? (
-                  <ImageGallery 
-                    images={getFilteredImages()} 
-                    onRegenerate={onRegenerate} 
-                    onDelete={onDelete}
-                    onDownload={onDownload}
-                    onShare={onShare}
-                  />
-                ) : (
-                  <EmptyState />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="recent" className="space-y-4">
-                {images && images.length > 0 ? (
-                  <ImageGallery
-                    images={getFilteredImages()}
-                    onRegenerate={onRegenerate}
-                    onDelete={onDelete}
-                    onDownload={onDownload}
-                    onShare={onShare}
-                  />
-                ) : (
-                  <EmptyState />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="oldest" className="space-y-4">
-                {images && images.length > 0 ? (
-                  <ImageGallery
-                    images={getFilteredImages()}
-                    onRegenerate={onRegenerate}
-                    onDelete={onDelete}
-                    onDownload={onDownload}
-                    onShare={onShare}
-                  />
-                ) : (
-                  <EmptyState />
-                )}
-              </TabsContent>
-            </>
+            <TabsContent value={activeTab} className="space-y-4 mt-0">
+              {visibleImages && visibleImages.length > 0 ? (
+                <ImageGallery 
+                  images={visibleImages} 
+                  onRegenerate={onRegenerate} 
+                  onDelete={onDelete}
+                  onDownload={onDownload}
+                  onShare={onShare}
+                />
+              ) : (
+                <EmptyState />
+              )}
+            </TabsContent>
           )}
         </div>
         

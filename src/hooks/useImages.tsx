@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -22,7 +22,7 @@ export const useImages = () => {
   const { toast } = useToast();
 
   // Fetch images for the current user
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     if (!user) {
       setImages([]);
       setIsLoading(false);
@@ -39,24 +39,21 @@ export const useImages = () => {
       
       setImages(fetchedImages || []);
       setIsEmpty(fetchedImages.length === 0);
-      
-      if (fetchedImages.length === 0) {
-        // No need to show an error toast for empty results
-        console.log("No images found for user");
-      }
     } catch (err: any) {
       console.error("Error fetching images:", err);
       setError(err.message || "Failed to fetch images");
-      setIsEmpty(true);
       toast({
         title: "Error",
-        description: "Failed to load your images. Using local storage as fallback.",
+        description: "Failed to load your images. Using fallback images.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      // Delay setting isLoading to false to prevent UI flashing
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
     }
-  };
+  }, [user, toast]);
 
   // Save a new image to the database with fallback mechanism
   const saveImage = async (url: string, prompt: string) => {
@@ -125,7 +122,7 @@ export const useImages = () => {
       setIsLoading(false);
       setIsEmpty(true);
     }
-  }, [user?.id]);
+  }, [user?.id, fetchImages]);
 
   return {
     images,
