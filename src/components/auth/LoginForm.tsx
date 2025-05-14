@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -31,6 +33,7 @@ interface LoginFormProps {
 
 const LoginForm = ({ onSwitchToRegister, onSwitchToReset }: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { toast } = useToast();
   
   const form = useForm<LoginFormValues>({
@@ -43,6 +46,7 @@ const LoginForm = ({ onSwitchToRegister, onSwitchToReset }: LoginFormProps) => {
 
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
+    setAuthError(null);
     
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -59,6 +63,17 @@ const LoginForm = ({ onSwitchToRegister, onSwitchToReset }: LoginFormProps) => {
       
       // Redirect will be handled by the auth state change
     } catch (error: any) {
+      console.error("Login error:", error);
+      
+      // Provide more user-friendly error messages
+      if (error.message === "Invalid login credentials") {
+        setAuthError("The email or password you entered is incorrect");
+      } else if (error.message.includes("Failed to fetch")) {
+        setAuthError("Network error. Please check your connection and try again");
+      } else {
+        setAuthError(error.message || "An error occurred during login");
+      }
+      
       toast({
         title: "Authentication error",
         description: error.message || "An error occurred during login",
@@ -77,6 +92,13 @@ const LoginForm = ({ onSwitchToRegister, onSwitchToReset }: LoginFormProps) => {
           Sign in to access your dashboard and creations
         </p>
       </div>
+
+      {authError && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{authError}</AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
