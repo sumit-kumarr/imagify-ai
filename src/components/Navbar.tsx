@@ -67,7 +67,7 @@ const Navbar = () => {
       <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <span className="bg-gradient-main text-transparent bg-clip-text font-bold text-2xl">
-            ArtificialCanvas
+            Imagify
           </span>
         </Link>
 

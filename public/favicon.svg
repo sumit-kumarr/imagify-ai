@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="32" height="32" rx="8" fill="url(#paint0_linear)"/>
+    
+    <!-- AI Image Icon -->
+    <path d="M10 10H22V22H10V10ZM12 12V20H20V12H12Z" fill="white"/>
+    <path d="M14 14H18V18H14V14Z" fill="#8B5CF6"/>
+    <path d="M15 19L13 17L14 16L15 17L18 14L19 15L15 19Z" fill="white"/>
+    
+    <!-- Sparkle Effects -->
+    <circle cx="24" cy="8" r="2" fill="white" fill-opacity="0.6"/>
+    <circle cx="7" cy="20" r="1.5" fill="white" fill-opacity="0.4"/>
+    
+    <!-- Gradient Definition -->
+    <defs>
+        <linearGradient id="paint0_linear" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#6D28D9"/>
+            <stop offset="1" stop-color="#7C3AED"/>
+        </linearGradient>
+    </defs>
+</svg>

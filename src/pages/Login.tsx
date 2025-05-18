@@ -21,7 +21,7 @@ const Login = () => {
         <div className="container max-w-7xl mx-auto">
           <Link to="/" className="flex items-center gap-2">
             <span className="bg-gradient-main text-transparent bg-clip-text font-bold text-2xl">
-              ArtificialCanvas
+              Imagify
             </span>
           </Link>
         </div>
@@ -72,7 +72,7 @@ const Login = () => {
       <footer className="py-6 px-4 border-t border-border">
         <div className="container max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} ArtificialCanvas. All rights reserved.
+            © {new Date().getFullYear()} Imagify || Made By SumitCodes | All rights reserved.
           </p>
           <div className="flex gap-4 mt-4 md:mt-0">
             <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
